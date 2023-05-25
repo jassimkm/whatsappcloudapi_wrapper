@@ -279,10 +279,11 @@ class WhatsappCloud {
     async sendSimpleButtons({ recipientPhone, message, listOfButtons }) {
         this._mustHaveMessage(message);
         this._mustHaverecipientPhone(recipientPhone);
-        
-        if(!listOfButtons) throw new Error('listOfButtons cannot be empty');
-        if(listOfButtons.length > 3) throw new Error('listOfButtons cannot be bigger than 3 elements');
-        
+
+        if (!listOfButtons) throw new Error('listOfButtons cannot be empty');
+        if (listOfButtons.length > 3)
+            throw new Error('listOfButtons cannot be bigger than 3 elements');
+
         let validButtons = listOfButtons
             .map((button) => {
                 if (!button.title) {
@@ -336,7 +337,80 @@ class WhatsappCloud {
 
         return response;
     }
+    async sendSimpleButtonsWithHeaderDocument({
+        recipientPhone,
+        message,
+        listOfButtons,
+        headerLink,
+        filename,
+    }) {
+        this._mustHaveMessage(message);
+        this._mustHaverecipientPhone(recipientPhone);
 
+        if (!listOfButtons) throw new Error('listOfButtons cannot be empty');
+        if (listOfButtons.length > 3)
+            throw new Error('listOfButtons cannot be bigger than 3 elements');
+
+        let validButtons = listOfButtons
+            .map((button) => {
+                if (!button.title) {
+                    throw new Error('"title" is required in making a request.');
+                }
+                if (button.title.length > 20) {
+                    throw new Error(
+                        'The button title must be between 1 and 20 characters long.'
+                    );
+                }
+                if (!button.id) {
+                    throw new Error('"id" is required in making a request.');
+                }
+                if (button.id.length > 256) {
+                    throw new Error(
+                        'The button id must be between 1 and 256 characters long.'
+                    );
+                }
+
+                return {
+                    type: 'reply',
+                    reply: {
+                        title: button.title,
+                        id: button.id,
+                    },
+                };
+            })
+            .filter(Boolean);
+
+        let body = {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: recipientPhone,
+            type: 'interactive',
+            interactive: {
+                type: 'button',
+                header: {
+                    type: 'document',
+                    document: {
+                        link: headerLink,
+                        filename: filename,
+                    },
+                },
+                body: {
+                    text: message,
+                },
+                action: {
+                    buttons: validButtons,
+                },
+            },
+        };
+
+        let response = await this._fetchAssistant({
+            url: '/messages',
+            method: 'POST',
+            body,
+        });
+
+        return response;
+    }
     async sendRadioButtons({
         recipientPhone,
         headerText,
